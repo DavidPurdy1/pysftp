@@ -144,6 +144,13 @@ class Connection(object):   # pylint:disable=r0902,r0904
         # Begin the SSH transport.
         self._transport = None
         self._start_transport(host, port)
+        # To increase performance on large file transfers
+        # See https://github.com/paramiko/paramiko/issues/175
+        # Increase window size allowing for more data to be in transit
+        self._transport.packetizer.REKEY_BYTES = pow(2, 40)
+        self._transport.packetizer.REKEY_PACKETS = pow(2, 40)
+        self._transport.window_size = 2147483647
+
         self._transport.use_compression(self._cnopts.compression)
         self._set_authentication(password, private_key, private_key_pass)
         self._transport.connect(**self._tconnect)
@@ -209,7 +216,6 @@ class Connection(object):   # pylint:disable=r0902,r0904
         """Establish the SFTP connection."""
         if not self._sftp_live:
             self._sftp = paramiko.SFTPClient.from_transport(self._transport)
-
 
             if self._auto_add_key == True:
                 hostkeys = self._cnopts.hostkeys
